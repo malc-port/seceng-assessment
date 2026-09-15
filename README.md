@@ -1,7 +1,7 @@
-# Coinflow — Security Engineer Practical Assessment
+# Security Engineer Practical Assessment
 
 Thanks for making it to this stage. This is a short, self-contained exercise
-built around a stripped-down version of a service we actually run: a payments
+built around a stripped-down version of a service that we may actually run: a payments
 API that takes card pay-ins, exposes transaction and settlement data to
 merchants, and accepts settlement callbacks from our PSP.
 
