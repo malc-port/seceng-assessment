@@ -1,0 +1,6 @@
+# Unpacked by setup.sh
+data/*.jsonl
+
+node_modules/
+dist/
+.DS_Store

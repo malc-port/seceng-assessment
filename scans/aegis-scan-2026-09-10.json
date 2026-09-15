@@ -1,0 +1,200 @@
+{
+  "schema_version": "1.2",
+  "tool": {
+    "name": "Aegis Scan",
+    "version": "3.8.1",
+    "scanners_enabled": ["sast-js", "sca-npm", "secrets"]
+  },
+  "scan": {
+    "id": "scan_01JQ7F3K9M",
+    "target": "coinflow/paylink-api",
+    "ref": "refs/heads/main",
+    "commit": "4b1c9e2",
+    "started_at": "2026-09-10T04:12:07Z",
+    "completed_at": "2026-09-10T04:19:41Z",
+    "files_scanned": 14,
+    "policy": "coinflow-default-v2"
+  },
+  "summary": {
+    "critical": 4,
+    "high": 4,
+    "medium": 3,
+    "low": 2,
+    "informational": 1,
+    "total": 14
+  },
+  "findings": [
+    {
+      "id": "AEG-001",
+      "severity": "CRITICAL",
+      "confidence": "HIGH",
+      "category": "secrets",
+      "title": "Hardcoded credential committed to source control",
+      "location": { "file": "service/tests/fixtures/keys.ts", "line": 11 },
+      "evidence": "export const TEST_PSP_WEBHOOK_SECRET = 'whsec_test_00000000...'",
+      "description": "A string matching the PSP webhook secret pattern (whsec_*) is present in version-controlled source. Secrets in source control are readable by anyone with repository access and persist in git history after removal.",
+      "remediation": "Rotate the credential and load it from the secrets manager at runtime.",
+      "cwe": "CWE-798"
+    },
+    {
+      "id": "AEG-002",
+      "severity": "HIGH",
+      "confidence": "HIGH",
+      "category": "sast",
+      "title": "SQL injection via string interpolation",
+      "location": { "file": "service/src/routes/reports.ts", "line": 48 },
+      "evidence": "WHERE ${filter}",
+      "description": "User-controlled input from req.query.filter is interpolated directly into a SQL statement. Rated HIGH rather than CRITICAL: the finding sits on an authenticated route under /v1/reports, so exploitation requires valid merchant credentials.",
+      "remediation": "Use parameterised queries or an allowlist of sortable/filterable columns.",
+      "cwe": "CWE-89"
+    },
+    {
+      "id": "AEG-003",
+      "severity": "MEDIUM",
+      "confidence": "MEDIUM",
+      "category": "sast",
+      "title": "Missing object-level authorization check",
+      "location": { "file": "service/src/routes/transactions.ts", "line": 26 },
+      "evidence": "SELECT ... FROM transactions WHERE id = $1",
+      "description": "A record is retrieved by an identifier taken from the request path and returned to the caller without comparing the record's owner against the authenticated principal.",
+      "remediation": "Add an ownership predicate to the query or reject on mismatch.",
+      "cwe": "CWE-639"
+    },
+    {
+      "id": "AEG-004",
+      "severity": "LOW",
+      "confidence": "MEDIUM",
+      "category": "sast",
+      "title": "Potentially sensitive object written to log output",
+      "location": { "file": "service/src/routes/payments.ts", "line": 40 },
+      "evidence": "logger.info('creating card payment', { ..., card })",
+      "description": "An object reaching a logging call may contain sensitive fields. The logger configures redaction for 'password' and the authorization header, which mitigates the common cases.",
+      "remediation": "Extend the logger redaction list if the object carries sensitive fields.",
+      "cwe": "CWE-532"
+    },
+    {
+      "id": "AEG-005",
+      "severity": "HIGH",
+      "confidence": "HIGH",
+      "category": "sast",
+      "title": "Non-constant-time comparison of message authentication code",
+      "location": { "file": "service/src/webhooks/pspWebhook.ts", "line": 36 },
+      "evidence": "if (signature !== expected) {",
+      "description": "An HMAC digest is compared with the JavaScript strict inequality operator, which short-circuits on the first differing byte. An attacker able to submit many requests may recover a valid signature by measuring response latency.",
+      "remediation": "Compare digests with crypto.timingSafeEqual on equal-length buffers.",
+      "cwe": "CWE-208"
+    },
+    {
+      "id": "AEG-006",
+      "severity": "CRITICAL",
+      "confidence": "MEDIUM",
+      "category": "sast",
+      "title": "OS command built from interpolated input",
+      "location": { "file": "service/scripts/seed-dev.ts", "line": 23 },
+      "evidence": "execSync(`psql \"${process.env.DATABASE_URL}\" -f ./migrations/schema.sql`)",
+      "description": "A shell command is constructed by interpolating a value into a template literal and executed via child_process.execSync. If the interpolated value is attacker-influenced, arbitrary commands run with the privileges of the process.",
+      "remediation": "Use execFile with an argument array, or validate the input against a strict pattern.",
+      "cwe": "CWE-78"
+    },
+    {
+      "id": "AEG-007",
+      "severity": "MEDIUM",
+      "confidence": "HIGH",
+      "category": "secrets",
+      "title": "Credential literal used as configuration fallback",
+      "location": { "file": "service/src/config.ts", "line": 28 },
+      "evidence": "process.env.PSP_WEBHOOK_SECRET || 'whsec_9f2a41c8b7e04d6a83c150e7d2ab9914'",
+      "description": "A credential-shaped literal is used as the default when the environment variable is absent. Rated MEDIUM: deployed environments are expected to supply the variable.",
+      "remediation": "Fail closed at startup when a required secret is missing.",
+      "cwe": "CWE-798"
+    },
+    {
+      "id": "AEG-008",
+      "severity": "INFORMATIONAL",
+      "confidence": "HIGH",
+      "category": "sast",
+      "title": "Express configured to trust proxy headers",
+      "location": { "file": "service/src/index.ts", "line": 16 },
+      "evidence": "app.set('trust proxy', true);",
+      "description": "The application is configured to derive req.ip from the X-Forwarded-For header without restricting which proxies are trusted. This is a common and usually intentional configuration for services behind a load balancer.",
+      "remediation": "Set trust proxy to the specific number of proxy hops in front of the application.",
+      "cwe": "CWE-348"
+    },
+    {
+      "id": "AEG-009",
+      "severity": "CRITICAL",
+      "confidence": "HIGH",
+      "category": "sca",
+      "title": "Prototype pollution in lodash",
+      "location": { "file": "service/package.json", "line": 22 },
+      "package": { "name": "lodash", "installed": "4.17.15", "fixed_in": "4.17.21", "ecosystem": "npm" },
+      "advisory": "GHSA-p6mc-m468-83gg",
+      "cvss": 9.1,
+      "description": "Versions of lodash before 4.17.21 are vulnerable to prototype pollution via the zipObjectDeep, set and setWith functions. A crafted property path can modify Object.prototype and change application behaviour globally.",
+      "remediation": "Upgrade lodash to 4.17.21 or later."
+    },
+    {
+      "id": "AEG-010",
+      "severity": "CRITICAL",
+      "confidence": "HIGH",
+      "category": "sca",
+      "title": "Arbitrary code execution in jest test runner dependency chain",
+      "location": { "file": "service/package.json", "line": 33 },
+      "package": { "name": "jest", "installed": "26.6.3", "fixed_in": "29.7.0", "ecosystem": "npm" },
+      "advisory": "GHSA-4w2v-q235-vp99",
+      "cvss": 9.8,
+      "description": "The resolved dependency chain for jest 26.x includes a package version with a published arbitrary code execution advisory. Any process that loads the affected module may be compromised.",
+      "remediation": "Upgrade jest to 29.7.0 or later."
+    },
+    {
+      "id": "AEG-011",
+      "severity": "HIGH",
+      "confidence": "HIGH",
+      "category": "sca",
+      "title": "Server-side request forgery in axios",
+      "location": { "file": "service/package.json", "line": 18 },
+      "package": { "name": "axios", "installed": "0.25.0", "fixed_in": "1.6.0", "ecosystem": "npm" },
+      "advisory": "GHSA-8hc4-vh64-cxmj",
+      "cvss": 7.5,
+      "description": "axios 0.25.0 follows redirects to arbitrary hosts and forwards the original request headers, allowing an attacker who controls a redirect target to receive credentials intended for another origin.",
+      "remediation": "Upgrade axios to 1.6.0 or later."
+    },
+    {
+      "id": "AEG-012",
+      "severity": "HIGH",
+      "confidence": "MEDIUM",
+      "category": "sca",
+      "title": "Unsafe deserialization in js-yaml",
+      "location": { "file": "service/package.json", "line": 0 },
+      "package": { "name": "js-yaml", "installed": "3.13.1", "fixed_in": "3.13.1", "ecosystem": "npm" },
+      "advisory": "GHSA-8j8c-7jfh-h6hx",
+      "cvss": 8.1,
+      "description": "js-yaml before 3.13.1 permits instantiation of arbitrary objects when loading untrusted YAML with the default schema, leading to code execution.",
+      "remediation": "Upgrade js-yaml and use safeLoad for untrusted input."
+    },
+    {
+      "id": "AEG-013",
+      "severity": "MEDIUM",
+      "confidence": "HIGH",
+      "category": "sca",
+      "title": "Outdated express release with published advisories",
+      "location": { "file": "service/package.json", "line": 20 },
+      "package": { "name": "express", "installed": "4.17.1", "fixed_in": "4.19.2", "ecosystem": "npm" },
+      "advisory": "GHSA-rv95-896h-c2vc",
+      "cvss": 6.1,
+      "description": "The declared express version is several minor releases behind the current 4.x line and is affected by an open redirect advisory in the response redirect helper.",
+      "remediation": "Upgrade express to 4.19.2 or later."
+    },
+    {
+      "id": "AEG-014",
+      "severity": "LOW",
+      "confidence": "LOW",
+      "category": "sca",
+      "title": "Dependency resolved from a non-default registry host",
+      "location": { "file": "service/package-lock.json", "line": 78 },
+      "package": { "name": "lodash", "installed": "4.17.15", "ecosystem": "npm" },
+      "description": "A lockfile entry resolves to a host other than registry.npmjs.org. This is common in organisations that operate an internal mirror or proxy and is reported for inventory purposes.",
+      "remediation": "Confirm the registry host is an approved mirror."
+    }
+  ]
+}

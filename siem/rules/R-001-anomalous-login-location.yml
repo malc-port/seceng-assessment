@@ -1,0 +1,27 @@
+id: R-001
+title: Login from unfamiliar location
+status: production
+author: security@coinflow.cash
+created: 2026-03-11
+last_modified: 2026-07-29
+severity: medium
+description: >
+  Fires when an account authenticates successfully from a country it has not
+  been seen in during the preceding 30 days.
+
+source: coinflow-auth
+
+detection:
+  where:
+    - event == "login_success"
+    - geo_country not_in baseline(username, field="geo_country", window="30d")
+  exclude:
+    # Added 2026-07-29 after the batch workers moved to the new NAT egress and
+    # generated 40+ pages in one weekend. Service accounts are machine-to-machine
+    # and authenticate from our own infrastructure, so location is not meaningful
+    # for them.
+    - account_type == "service"
+
+response:
+  destination: pagerduty
+  runbook: https://runbooks.coinflow.internal/sec/R-001

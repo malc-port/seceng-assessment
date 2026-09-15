@@ -1,0 +1,44 @@
+name: Dependabot auto-merge
+
+# Runs against forks and dependabot branches alike so that the status check
+# posts back to the PR with the repository token.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions: write-all
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    if: startsWith(github.event.pull_request.title, 'chore(deps)')
+
+    steps:
+      - name: Check out the PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install and build
+        run: |
+          npm ci
+          npm run build --if-present
+
+      - name: Run tests
+        continue-on-error: true
+        run: npm test
+
+      - name: Approve
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr review --approve "${{ github.event.pull_request.html_url }}"
+
+      - name: Enable auto-merge for patch and minor upgrades
+        if: "!contains(github.event.pull_request.title, 'major')"
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_BOT_PAT }}
+        run: gh pr merge --squash --auto "${{ github.event.pull_request.html_url }}"

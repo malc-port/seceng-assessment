@@ -1,0 +1,25 @@
+id: R-003
+title: API resource enumeration
+status: production
+author: platform-eng@coinflow.cash
+created: 2026-01-19
+last_modified: 2026-05-04
+severity: medium
+description: >
+  Detects a caller walking through resource identifiers by counting requests to
+  parameterised routes.
+
+source: api-gateway
+
+detection:
+  where:
+    - route matches "/v1/*/:id"
+    - status == 200
+  group_by: src_ip
+  threshold:
+    count: 1000
+    window: 5m
+
+response:
+  destination: slack#sec-alerts
+  runbook: https://runbooks.coinflow.internal/sec/R-003

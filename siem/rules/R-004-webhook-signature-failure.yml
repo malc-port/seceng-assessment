@@ -1,0 +1,21 @@
+id: R-004
+title: PSP webhook signature verification failure
+status: production
+author: security@coinflow.cash
+created: 2026-04-22
+last_modified: 2026-04-22
+severity: high
+description: >
+  Any inbound PSP webhook that fails signature verification is treated as a
+  potential forgery attempt against the settlement path.
+
+source: api-gateway
+
+detection:
+  where:
+    - route == "/v1/webhooks/psp"
+    - sig_valid == false
+
+response:
+  destination: pagerduty
+  runbook: https://runbooks.coinflow.internal/sec/R-004

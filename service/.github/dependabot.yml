@@ -1,0 +1,24 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: saturday
+    open-pull-requests-limit: 3
+    versioning-strategy: increase
+    reviewers:
+      - coinflow/platform-eng
+    ignore:
+      # Upgrading these broke the settlement path in Q1 2026; revisit after the
+      # ledger rewrite lands.
+      - dependency-name: jsonwebtoken
+      - dependency-name: pg
+        versions: ['>=8.6.0']
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+    labels:
+      - dependencies
+    commit-message:
+      prefix: chore(deps)
