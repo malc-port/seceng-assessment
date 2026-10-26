@@ -2,7 +2,7 @@ import { Router } from 'express';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 
-import { query } from '../db';
+import { query, nextTransactionSequence } from '../db';
 import { logger } from '../util/logger';
 
 export const paymentsRouter = Router();
@@ -29,7 +29,7 @@ paymentsRouter.post('/card', async (req, res) => {
     customer_email: string;
   };
 
-  const transactionId = `txn_${uuidv4().slice(0, 12)}`;
+  const transactionId = `txn_${await nextTransactionSequence()}`;
 
   logger.info('creating card payment', {
     transaction_id: transactionId,
@@ -46,7 +46,7 @@ paymentsRouter.post('/card', async (req, res) => {
       amount: amount_usd,
       currency,
       card,
-      reference: transactionId,
+      reference: uuidv4(),
     });
     authorization = response.data;
   } catch (err: any) {
